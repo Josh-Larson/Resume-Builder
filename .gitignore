@@ -1,0 +1,9 @@
+# Binary Files
+*.ttf
+
+# Python
+/.venv
+__pycache__
+
+# Other
+/.idea
