@@ -21,19 +21,19 @@ class ResumeGenerator:
 		self.font = None
 		self.resume = resume
 		self.canvas = canvas.Canvas(output_path, pagesize=self.page_size)
-	
+
 	def _set_font(self, height: float, bold: bool):
 		font_name = "Calibri-Bold" if bold else "Calibri"
 		new_font = (font_name, height, bold)
 		if self.font != new_font:
 			self.canvas.setFont(font_name, height)
 			self.font = new_font
-	
+
 	def _new_page(self):
 		self.canvas.showPage()
 		self.canvas.setFont(self.font[0], self.font[1])
 		self.pos = self.page_size[1] - self.margin[1]
-	
+
 	def _split_line(self, line: str, font_height: float = None) -> Tuple[List[str], float]:
 		font_height = font_height if font_height is not None else self.font[1]
 		lines = []
@@ -53,7 +53,7 @@ class ResumeGenerator:
 				lines.append(" ".join(words[words_start:]))
 				height += font_height + 2
 		return lines, height
-	
+
 	def _draw_table_row(self, row: List[str], width: List[float], height: List[float], bold: List[bool]):
 		if max(height) > self.pos - self.margin[1]:
 			self._new_page()
@@ -64,7 +64,7 @@ class ResumeGenerator:
 				self.canvas.drawString(self.margin[0] + sum(width[:col]), self.pos, line)
 				max_height = max(max_height, height[col] + 2)
 		self.pos -= max_height
-	
+
 	def _draw_left(self, line: str, height: float = 12, bold: bool = False, underline: bool = False):
 		self._set_font(height, bold)
 		for line in self._split_line(line)[0]:
@@ -102,12 +102,12 @@ class ResumeGenerator:
 			if line != "":
 				self.canvas.drawRightString(self.page_size[0] - self.margin[0], self.pos, line)
 			self.pos -= height + 2
-	
+
 	def _get_resume_content_block_height(self, block: ResumeContentBlock) -> float:
 		height = 16 + sum(14 if line is not None else 0 for line in [block.subtitle, block.start_day, block.location])
 		height += sum(self._split_line(bullet, 12)[1] for bullet in block.description) if block.description else 0
 		return height - 18 - 14  # The first header nor last line don't count towards our actual height
-	
+
 	def _draw_resume_content_block(self, block: ResumeContentBlock):
 		if self._get_resume_content_block_height(block) > self.pos - self.margin[1]:
 			self._new_page()
@@ -126,7 +126,7 @@ class ResumeGenerator:
 					self._draw_left(f"{'    ' * tabs} \u2022 {bullet}")
 				else:
 					self._draw_left(f" \u2022 {bullet}")
-	
+
 	def draw_author(self):
 		author = self.resume.author
 		height = 18 + 14 * 4
@@ -138,7 +138,7 @@ class ResumeGenerator:
 		self._draw_centered(author.email)
 		self._draw_centered(author.address)
 		self._draw_centered("")
-	
+
 	def draw_pitch(self):
 		pitch = self.resume.pitch
 		height = 14 * 4
@@ -146,7 +146,7 @@ class ResumeGenerator:
 			self._new_page()
 		self._draw_left(pitch)
 		self._draw_centered("")
-	
+
 	def draw_skills(self):
 		skills = self.resume.skills
 		if len(skills) == 0:
@@ -158,7 +158,7 @@ class ResumeGenerator:
 		for skill, skill_list in skills.items():
 			self._draw_table_row([skill + ":", ", ".join(skill_list)], [skill_width, list_width], [12, 12], [True, False])
 		self._draw_left("")
-	
+
 	def draw_work_experience(self):
 		experience = self.resume.experience
 		if len(experience) == 0:
@@ -171,7 +171,7 @@ class ResumeGenerator:
 			self._draw_left("")
 			self._draw_resume_content_block(exp.content)
 		self._draw_left("")
-	
+
 	def draw_custom_section(self, section_name: str):
 		section_contents = self.resume.custom_sections[section_name]
 		section_height = 18 + (14 + 16 + sum(sum(self._split_line(bullet)[1] for bullet in section.description) for section in section_contents))
@@ -182,7 +182,7 @@ class ResumeGenerator:
 			self._draw_left("")
 			self._draw_resume_content_block(section)
 		self._draw_left("")
-	
+
 	def draw_certifications(self):
 		if len(self.resume.certifications) == 0:
 			return
@@ -194,14 +194,14 @@ class ResumeGenerator:
 		for cert in self.resume.certifications:
 			self._draw_left(f"{cert.name}   [{cert.day.strftime('%b %Y')}]")
 		self._draw_left("")
-	
+
 	def __draw_education_list(self, title: str, education_list: List[Education]):
 		self._draw_centered(title, height=16, bold=True)
 		for edu in education_list:
 			self._draw_left("")
 			self._draw_resume_content_block(edu.content)
 		self._draw_left("")
-	
+
 	def draw_education(self):
 		education = self.resume.education
 		if len(education) == 0:
@@ -210,7 +210,7 @@ class ResumeGenerator:
 		if height > self.pos - self.margin[1]:
 			self._new_page()
 		self.__draw_education_list("EDUCATION", education)
-	
+
 	def draw_courses(self):
 		courses = self.resume.courses
 		if len(courses) == 0:
@@ -219,6 +219,6 @@ class ResumeGenerator:
 		if height > self.pos - self.margin[1]:
 			self._new_page()
 		self.__draw_education_list("COURSES", courses)
-	
+
 	def save(self):
 		self.canvas.save()

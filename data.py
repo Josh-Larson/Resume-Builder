@@ -30,7 +30,7 @@ class WorkExperience:
 	start_day: datetime.date
 	end_day: Optional[datetime.date]
 	description: List[str]
-	
+
 	@property
 	def content(self) -> ResumeContentBlock:
 		return ResumeContentBlock(self.company, self.job_title, self.location, self.start_day, self.end_day, self.description)
@@ -51,7 +51,7 @@ class Education:
 	start_day: datetime.date
 	end_day: Optional[datetime.date]
 	description: List[str]
-	
+
 	@property
 	def content(self) -> ResumeContentBlock:
 		course = self.course if self.gpa is None else f"{self.course}   [GPA: {self.gpa:.2f}]"
