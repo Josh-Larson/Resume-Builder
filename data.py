@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 @dataclasses.dataclass
 class Author:
 	name: str
+	title: str
 	phone: str
 	email: str
 	address: str
