@@ -10,6 +10,7 @@ class Author:
 	phone: str
 	email: str
 	address: str
+	linkedin: str = None
 
 
 @dataclasses.dataclass
