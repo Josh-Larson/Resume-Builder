@@ -11,6 +11,7 @@ class Author:
 	email: str
 	address: str
 	linkedin: str = None
+	github: str = None
 
 
 @dataclasses.dataclass

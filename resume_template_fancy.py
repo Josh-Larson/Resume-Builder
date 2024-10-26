@@ -75,6 +75,10 @@ class ResumeTemplateFancy(ResumeGenerator):
 					self._set_symbola()
 					self.canvas.drawString(emoji_x, self.pos, "\U0001F310")
 					self._draw_left(f"[LinkedIn]({author.linkedin})")
+				if author.github:
+					self._set_symbola()
+					self.canvas.drawString(emoji_x, self.pos, "\U0001F310")
+					self._draw_left(f"[GitHub]({author.github})")
 
 	def _draw_left_bar_skills(self):
 		self._draw_left_bar_section_header("Skills")
