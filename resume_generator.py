@@ -1,5 +1,6 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 import re
+import uuid
 
 from data import Education, Resume, ResumeContentBlock
 
@@ -39,19 +40,61 @@ class ResumeGenerator:
 		lines = []
 		height = 0
 		for line in line.split("\n"):
-			line = re.sub(r"\[([^]]+)]\(([^)]+)\)", r"\g<1>", line)
-			words = line.split(" ")
-			words_start = 0
-			for i, word in enumerate(words):
-				prev_words_length = self.canvas.stringWidth(" ".join(words[words_start:i]))
-				next_word_length = self.canvas.stringWidth(word)
+			if line == "":
+				lines.append([])
+				continue
+			tokens = []
+			start_index = 0
+			# Find URLs
+			text_uuid = uuid.uuid4()
+			for match in re.finditer(r"\[([^]]+)]\(([^)]+)\)", line):
+				if start_index < match.start():
+					tokens.append({"type": "str", "text": line[start_index:match.start()], "uuid": text_uuid})
+				tokens.append({"type": "url", "text": match.group(1), "url": match.group(2), "uuid": uuid.uuid4()})
+				start_index = match.end()
+			if start_index < len(line):
+				tokens.append({"type": "str", "text": line[start_index:], "uuid": text_uuid})
+
+			# Split tokens on words
+			tokens_final = []
+			for token in tokens:
+				for word in token["text"].split(" "):
+					token_copy = token.copy()
+					token_copy["text"] = word
+					tokens_final.append(token_copy)
+			tokens = tokens_final
+
+			line_tokens = []
+			current_line_width = 0
+			current_token: Optional[dict] = None
+			for token in tokens:
+				if current_token is not None and current_token["uuid"] != token["uuid"]:
+					# Commit unique token to line
+					line_tokens.append(current_token)
+					current_token = None
+				if current_token is None:
+					current_token = token.copy()
+					current_token["text"] = ""
+				text = token["text"]
+				prev_words_length = current_line_width + self.canvas.stringWidth(current_token["text"])
+				next_word_length = self.canvas.stringWidth(text)
 				if prev_words_length + next_word_length > self.page_size[0] - self.margin[0] * 2:
-					lines.append(" ".join(words[words_start:i]))
+					line_tokens.append(current_token)
+					lines.append(line_tokens)
+					line_tokens = []
+					current_token = None
+					current_line_width = 0
 					height += font_height + 2
-					words_start = i
-			if words_start != len(words):
-				lines.append(" ".join(words[words_start:]))
-				height += font_height + 2
+				if current_token is not None:
+					if len(current_token["text"]) > 0 or len(text) == 0:
+						current_token["text"] += " "
+					current_token["text"] += text
+				if current_token is None:
+					current_token = token.copy()
+			if current_token is not None:
+				line_tokens.append(current_token)
+			if len(line_tokens) > 0:
+				lines.append(line_tokens)
 		return lines, height
 
 	def _draw_table_row(self, row: List[str], width: List[float], height: List[float], bold: List[bool]):
@@ -65,6 +108,16 @@ class ResumeGenerator:
 				max_height = max(max_height, height[col] + 2)
 		self.pos -= max_height
 
+	def _draw_token(self, token: dict, height: float, pos_x: float, bold: bool, underline: bool):
+		self._set_font(height, bold)
+		token_width = self.canvas.stringWidth(token["text"])
+		self.canvas.drawString(pos_x, self.pos, token["text"])
+		if underline or token["type"] in {"underline", "url"}:
+			self.canvas.line(pos_x, self.pos - 2, pos_x + token_width, self.pos - 2)
+		if token["type"] == "url":
+			self.canvas.linkURL(token["url"], (pos_x, self.pos - 2, pos_x + token_width, self.pos + height))
+		return token_width
+
 	def _draw_left(self, line: str, height: float = 12, bold: bool = False, underline: bool = False):
 		self._set_font(height, bold)
 		for line in self._split_line(line)[0]:
@@ -73,10 +126,9 @@ class ResumeGenerator:
 				if line == "":
 					continue
 			print(line)
-			if line != "":
-				self.canvas.drawString(self.margin[0], self.pos, line)
-				if underline:
-					self.canvas.line(self.margin[0], self.pos - 2, self.margin[0] + self.canvas.stringWidth(line), self.pos - 2)
+			idx = self.margin[0]
+			for token in line:
+				idx += self._draw_token(token, height, idx, bold, underline)
 			self.pos -= height + 2
 
 	def _draw_centered(self, line: str, height: float = 12, bold: bool = False):
@@ -87,8 +139,10 @@ class ResumeGenerator:
 				if line == "":
 					continue
 			print(line)
-			if line != "":
-				self.canvas.drawCentredString(self.page_size[0] / 2, self.pos, line)
+			line_width = sum(self.canvas.stringWidth(token["text"]) for token in line)
+			idx = self.page_size[0] / 2 - line_width / 2
+			for token in line:
+				idx += self._draw_token(token, height, idx, bold, underline=False)
 			self.pos -= height + 2
 
 	def _draw_right(self, line: str, height: float = 12, bold: bool = False):
@@ -99,8 +153,10 @@ class ResumeGenerator:
 				if line == "":
 					continue
 			print(line)
-			if line != "":
-				self.canvas.drawRightString(self.page_size[0] - self.margin[0], self.pos, line)
+			line_width = sum(self.canvas.stringWidth(token["text"]) for token in line)
+			idx = self.page_size[0] - self.margin[0] - line_width
+			for token in line:
+				idx += self._draw_token(token, height, idx, bold, underline=False)
 			self.pos -= height + 2
 
 	def _get_resume_content_block_height(self, block: ResumeContentBlock) -> float:
