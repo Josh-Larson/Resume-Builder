@@ -80,6 +80,12 @@ class ResumeTemplateFancy(ResumeGenerator):
 					self.canvas.drawString(emoji_x, self.pos, "\U0001F310")
 					self._draw_left(f"[GitHub]({author.github})")
 
+	def _draw_left_bar_certifications(self):
+		self._draw_left_bar_section_header("Certifications")
+		with TemporaryMarginIncrease(self, 7):
+			for idx, certification in enumerate(self.resume.certifications):
+				self._draw_left(f"\u2022 {certification.name}", height=12)
+
 	def _draw_left_bar_skills(self):
 		self._draw_left_bar_section_header("Skills")
 		with TemporaryMarginIncrease(self, 7):
@@ -115,13 +121,16 @@ class ResumeTemplateFancy(ResumeGenerator):
 		self._draw_left(self.resume.author.name, height=22, bold=True)
 		self._draw_left(self.resume.author.title, height=14)
 		self._draw_left("", height=8)
-		self._draw_left(self.resume.pitch)
-		self._draw_left("")
+		if self.resume.pitch:
+			self._draw_left(self.resume.pitch)
+			self._draw_left("")
 
 		# Sections
 		self._draw_left_bar_contact()
 		self._draw_left("")
 		self._draw_left_bar_education()
+		self._draw_left("")
+		self._draw_left_bar_certifications()
 		self._draw_left("")
 		self._draw_left_bar_skills()
 
@@ -175,7 +184,7 @@ class ResumeTemplateFancy(ResumeGenerator):
 								self._draw_left(f"{'    ' * tabs} \u2022 {bullet}")
 							else:
 								self._draw_left(f" \u2022 {bullet}")
-						self._draw_left("")
+						self._draw_left("", height=10)
 			self.canvas.setStrokeColor(self.experience_continuity_color)
 			self.canvas.line(self.margin[0], start_y, self.margin[0], self.pos + 24)
 			self.canvas.setStrokeColor(self.text_color)

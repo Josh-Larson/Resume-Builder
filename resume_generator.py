@@ -35,7 +35,7 @@ class ResumeGenerator:
 		self.canvas.setFont(self.font[0], self.font[1])
 		self.pos = self.page_size[1] - self.margin[1]
 
-	def _split_line(self, line: str, font_height: float = None) -> Tuple[List[str], float]:
+	def _split_line(self, line: str, font_height: float = None) -> Tuple[List[List[dict]], float]:
 		font_height = font_height if font_height is not None else self.font[1]
 		lines = []
 		height = 0
@@ -75,9 +75,13 @@ class ResumeGenerator:
 				if current_token is None:
 					current_token = token.copy()
 					current_token["text"] = ""
-				text = token["text"]
-				prev_words_length = current_line_width + self.canvas.stringWidth(current_token["text"])
+					text = ""
+				else:
+					text = " "
+				text += token["text"]
+				prev_words_length = current_line_width
 				next_word_length = self.canvas.stringWidth(text)
+				# Wrap at the end of the line
 				if prev_words_length + next_word_length > self.page_size[0] - self.margin[0] * 2:
 					line_tokens.append(current_token)
 					lines.append(line_tokens)
@@ -85,12 +89,13 @@ class ResumeGenerator:
 					current_token = None
 					current_line_width = 0
 					height += font_height + 2
-				if current_token is not None:
-					if len(current_token["text"]) > 0 or len(text) == 0:
-						current_token["text"] += " "
-					current_token["text"] += text
+				# Update the previous token or make a new one
 				if current_token is None:
 					current_token = token.copy()
+					current_line_width = next_word_length
+				else:
+					current_token["text"] += text
+					current_line_width += next_word_length
 			if current_token is not None:
 				line_tokens.append(current_token)
 			if len(line_tokens) > 0:
